@@ -425,12 +425,8 @@
     <div id="claw-shake-zone"></div>
 
     <!-- Character hotspots -->
-    <div id="hotspot-astronaut" class="hotspot" data-character="astronaut">
-      <span class="hotspot-label">우주인</span>
-    </div>
-    <div id="hotspot-melting" class="hotspot" data-character="melting">
-      <span class="hotspot-label">멜팅</span>
-    </div>
+    <div id="hotspot-astronaut" class="hotspot" data-character="astronaut"></div>
+    <div id="hotspot-melting" class="hotspot" data-character="melting"></div>
 
     <!-- Bottom intro text -->
     <div id="intro-text">
@@ -563,38 +559,57 @@
       img.src = src;
     });
 
-    // Hover: swap background image to show neon glow on character
+    // Detect touch device
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    // Hover: swap background image to show neon glow on character (desktop only)
     hotspots.forEach(h => {
       h.addEventListener('mouseenter', () => {
+        if (isTouchDevice) return;
         const key = h.dataset.character;
         mainBg.src = hoverImages[key] || defaultBg;
         mainScreen.classList.add('machine-hover');
       });
       h.addEventListener('mouseleave', () => {
+        if (isTouchDevice) return;
         mainBg.src = defaultBg;
         mainScreen.classList.remove('machine-hover');
       });
     });
 
     // Click: open overlay
+    function openOverlay(key) {
+      const data = characters[key];
+      document.getElementById('overlay-character').src = data.image;
+      document.getElementById('overlay-character').alt = data.name;
+      document.getElementById('overlay-name').textContent = data.name;
+      document.getElementById('overlay-role').textContent = data.role;
+      document.getElementById('overlay-desc').innerHTML = data.desc;
+
+      const clawImg = document.getElementById('overlay-claw');
+      clawImg.style.animation = 'none';
+      clawImg.offsetHeight;
+      clawImg.style.animation = 'clawDrop 1s ease-out forwards';
+
+      overlay.classList.add('active');
+    }
+
     hotspots.forEach(h => {
       h.addEventListener('click', () => {
         const key = h.dataset.character;
-        const data = characters[key];
 
-        document.getElementById('overlay-character').src = data.image;
-        document.getElementById('overlay-character').alt = data.name;
-        document.getElementById('overlay-name').textContent = data.name;
-        document.getElementById('overlay-role').textContent = data.role;
-        document.getElementById('overlay-desc').innerHTML = data.desc;
-
-        // Reset claw animation
-        const clawImg = document.getElementById('overlay-claw');
-        clawImg.style.animation = 'none';
-        clawImg.offsetHeight; // force reflow
-        clawImg.style.animation = 'clawDrop 1s ease-out forwards';
-
-        overlay.classList.add('active');
+        if (isTouchDevice) {
+          // Mobile: show glow image first, then open overlay after 0.5s
+          mainBg.src = hoverImages[key] || defaultBg;
+          mainScreen.classList.add('machine-hover');
+          setTimeout(() => {
+            openOverlay(key);
+            mainBg.src = defaultBg;
+            mainScreen.classList.remove('machine-hover');
+          }, 500);
+        } else {
+          openOverlay(key);
+        }
       });
     });
 
@@ -618,6 +633,7 @@
     const canvas = document.getElementById('sparkle-canvas');
     const ctx = canvas.getContext('2d');
     let sparkles = [];
+    const isMobile = window.innerWidth <= 768;
     const SPARKLE_COUNT = 70;
 
     function resizeCanvas() {
@@ -681,18 +697,35 @@
         y: pos.y,
         size: Math.random() * 6 + 3,
         opacity: Math.random(),
-        speed: Math.random() * 0.02 + 0.01,
+        speed: 0.5 / (Math.PI * 2),
         phase: Math.random() * Math.PI * 2,
         drift: (Math.random() - 0.5) * 0.3,
         floatSpeed: Math.random() * 0.3 + 0.1,
-        // Colors: white, soft pink, light cyan to match the scene
         color: ['#ffffff', '#ffe0f0', '#c8faff', '#fff5fc', '#d4f8ff'][Math.floor(Math.random() * 5)]
       };
     }
 
-    // Initialize sparkles
-    for (let i = 0; i < SPARKLE_COUNT; i++) {
-      sparkles.push(createSparkle());
+    // Mobile: slow float upward + twinkle
+    function createMobileSparkle() {
+      const region = getMintRegion();
+      const pos = randomPosOutsideCharacters(region);
+      return {
+        x: pos.x,
+        y: pos.y,
+        size: Math.random() * 4 + 2,
+        phase: Math.random() * Math.PI * 2,
+        cycleSpeed: Math.PI * 2 / 0.5,
+        floatSpeed: Math.random() * 0.08 + 0.02,
+        drift: (Math.random() - 0.5) * 0.1,
+        color: ['#ffffff', '#ffe0f0', '#c8faff', '#fff5fc', '#d4f8ff'][Math.floor(Math.random() * 5)]
+      };
+    }
+
+    function initSparkles() {
+      sparkles = [];
+      for (let i = 0; i < SPARKLE_COUNT; i++) {
+        sparkles.push(isMobile ? createMobileSparkle() : createSparkle());
+      }
     }
 
     function drawStar(x, y, size, color, opacity) {
@@ -700,7 +733,7 @@
       ctx.globalAlpha = opacity;
       ctx.fillStyle = color;
       ctx.shadowColor = color;
-      ctx.shadowBlur = size * 4;
+      ctx.shadowBlur = size * 3;
 
       // 4-pointed star
       ctx.beginPath();
@@ -721,37 +754,63 @@
     function animateSparkles() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       time += 0.016;
-      const region = getMintRegion();
 
-      sparkles.forEach(s => {
-        // Twinkle: oscillating opacity
-        const twinkle = (Math.sin(time * (1 / s.speed) + s.phase) + 1) / 2;
-        const currentOpacity = twinkle * 0.8 + 0.1;
+      if (isMobile) {
+        // Mobile: slow float upward + twinkle
+        const region = getMintRegion();
+        sparkles.forEach(s => {
+          const opacity = (Math.sin(time * s.cycleSpeed + s.phase) + 1) / 2 * 0.7 + 0.1;
 
-        // Gentle float upward & drift
-        s.y -= s.floatSpeed;
-        s.x += s.drift * 0.1;
+          s.y -= s.floatSpeed;
+          s.x += s.drift * 0.1;
 
-        // Reset if out of region or drifted into character zone
-        if (s.y < region.y - 10 || s.x < region.x - 10 || s.x > region.x + region.w + 10 || isInExcludeZone(s.x, s.y, region)) {
-          const pos = randomPosOutsideCharacters(region);
-          s.x = pos.x;
-          s.y = region.y + region.h;
-          s.phase = Math.random() * Math.PI * 2;
-        }
+          if (s.y < region.y - 10 || s.x < region.x - 10 || s.x > region.x + region.w + 10 || isInExcludeZone(s.x, s.y, region)) {
+            const pos = randomPosOutsideCharacters(region);
+            s.x = pos.x;
+            s.y = region.y + region.h;
+            s.phase = Math.random() * Math.PI * 2;
+          }
 
-        const currentSize = s.size * (0.7 + twinkle * 0.5);
-        drawStar(s.x, s.y, currentSize, s.color, currentOpacity);
-      });
+          drawStar(s.x, s.y, s.size, s.color, opacity);
+        });
+      } else {
+        // Desktop: original floating behavior
+        const region = getMintRegion();
+        sparkles.forEach(s => {
+          const twinkle = (Math.sin(time * (1 / s.speed) + s.phase) + 1) / 2;
+          const currentOpacity = twinkle * 0.8 + 0.1;
+
+          s.y -= s.floatSpeed;
+          s.x += s.drift * 0.1;
+
+          if (s.y < region.y - 10 || s.x < region.x - 10 || s.x > region.x + region.w + 10 || isInExcludeZone(s.x, s.y, region)) {
+            const pos = randomPosOutsideCharacters(region);
+            s.x = pos.x;
+            s.y = region.y + region.h;
+            s.phase = Math.random() * Math.PI * 2;
+          }
+
+          const currentSize = s.size * (0.7 + twinkle * 0.5);
+          drawStar(s.x, s.y, currentSize, s.color, currentOpacity);
+        });
+      }
 
       requestAnimationFrame(animateSparkles);
     }
 
-    // Start after image loads
-    if (mainBg.complete) {
+    // Start after image loads — only once
+    let sparklesStarted = false;
+    function startSparkles() {
+      if (sparklesStarted) return;
+      sparklesStarted = true;
+      initSparkles();
       animateSparkles();
+    }
+
+    if (mainBg.complete) {
+      startSparkles();
     } else {
-      mainBg.addEventListener('load', animateSparkles);
+      mainBg.addEventListener('load', startSparkles);
     }
   </script>
 </body>
