@@ -39,6 +39,16 @@
       display: block;
     }
 
+    #sparkle-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
     /* Hotspot areas over the characters in the image */
     .hotspot {
       position: absolute;
@@ -284,9 +294,6 @@
     /* ===== INTRO TITLE ===== */
     #intro-text {
       position: absolute;
-      bottom: 5%;
-      left: 50%;
-      transform: translateX(-50%);
       text-align: center;
       z-index: 8;
       pointer-events: none;
@@ -307,14 +314,56 @@
       letter-spacing: 1px;
     }
 
-    /* Pulsing hint */
-    @keyframes pulse {
-      0%, 100% { opacity: 0.5; }
-      50% { opacity: 1; }
+    /* Neon glow pulse */
+    @keyframes neonGlow {
+      0%, 100% {
+        text-shadow:
+          0 0 7px #fff,
+          0 0 15px #ff9ec7,
+          0 0 30px #ff9ec7,
+          0 0 50px #ff6fb0,
+          0 0 80px #ff6fb0;
+      }
+      50% {
+        text-shadow:
+          0 0 10px #fff,
+          0 0 25px #ff9ec7,
+          0 0 50px #ff9ec7,
+          0 0 80px #ff6fb0,
+          0 0 120px #ff6fb0,
+          0 0 160px rgba(255,111,176,0.4);
+      }
+    }
+
+    @keyframes subtleGlow {
+      0%, 100% {
+        opacity: 0.6;
+        text-shadow:
+          0 0 5px #fff,
+          0 0 10px #ff9ec7,
+          0 0 20px rgba(255,158,199,0.4);
+      }
+      50% {
+        opacity: 1;
+        text-shadow:
+          0 0 8px #fff,
+          0 0 18px #ff9ec7,
+          0 0 35px #ff9ec7,
+          0 0 55px rgba(255,111,176,0.3);
+      }
+    }
+
+    #intro-text h1 {
+      animation: neonGlow 3s ease-in-out infinite;
     }
 
     #intro-text p {
-      animation: pulse 2s ease-in-out infinite;
+      animation: simplePulse 3s ease-in-out infinite;
+    }
+
+    @keyframes simplePulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
     }
 
     /* ===== RESPONSIVE ===== */
@@ -349,6 +398,7 @@
 
   <!-- MAIN SCREEN -->
   <div id="main-screen">
+    <canvas id="sparkle-canvas"></canvas>
     <img id="main-bg" src="16.9upscale.png" alt="인형뽑기 기계" />
 
     <!-- Invisible claw zone for shake animation -->
@@ -458,6 +508,21 @@
       claw.style.top = (offsetY + displayH * 0.0) + 'px';
       claw.style.width = (displayW * 0.22) + 'px';
       claw.style.height = (displayH * 0.35) + 'px';
+
+      // Intro text - positioned near the drop chute, below the claw arm
+      const intro = document.getElementById('intro-text');
+      const clawCenterX = offsetX + displayW * 0.10 + (displayW * 0.22) / 2;
+      const introW = displayW * 0.28;
+      const introTop = offsetY + displayH * 0.48;
+      intro.style.left = (clawCenterX - introW / 2) + 'px';
+      intro.style.top = introTop + 'px';
+      intro.style.width = introW + 'px';
+
+      // Scale font size relative to image
+      const baseFontH1 = displayW * 0.032;
+      const baseFontP = displayW * 0.016;
+      intro.querySelector('h1').style.fontSize = Math.max(baseFontH1, 13) + 'px';
+      intro.querySelector('p').style.fontSize = Math.max(baseFontP, 9) + 'px';
     }
 
     // Update on load and resize
@@ -528,6 +593,146 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') overlay.classList.remove('active');
     });
+
+    // ===== SPARKLE PARTICLES =====
+    const canvas = document.getElementById('sparkle-canvas');
+    const ctx = canvas.getContext('2d');
+    let sparkles = [];
+    const SPARKLE_COUNT = 70;
+
+    function resizeCanvas() {
+      canvas.width = mainScreen.offsetWidth;
+      canvas.height = mainScreen.offsetHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Get the mint background region (top area of the image, excluding the pink machine frame)
+    function getMintRegion() {
+      const screenRect = mainScreen.getBoundingClientRect();
+      const imgRatio = mainBg.naturalWidth / mainBg.naturalHeight;
+      const containerRatio = screenRect.width / screenRect.height;
+      let displayW, displayH, offsetX, offsetY;
+
+      if (containerRatio > imgRatio) {
+        displayH = screenRect.height;
+        displayW = displayH * imgRatio;
+        offsetX = (screenRect.width - displayW) / 2;
+        offsetY = 0;
+      } else {
+        displayW = screenRect.width;
+        displayH = displayW / imgRatio;
+        offsetX = 0;
+        offsetY = (screenRect.height - displayH) / 2;
+      }
+
+      // Full image area
+      return {
+        x: offsetX,
+        y: offsetY,
+        w: displayW,
+        h: displayH,
+        // Character exclusion zones (astronaut & melting)
+        exclude: [
+          { x: offsetX + displayW * 0.48, y: offsetY + displayH * 0.12, w: displayW * 0.18, h: displayH * 0.50 },
+          { x: offsetX + displayW * 0.45, y: offsetY + displayH * 0.55, w: displayW * 0.22, h: displayH * 0.35 }
+        ]
+      };
+    }
+
+    function isInExcludeZone(x, y, region) {
+      return region.exclude.some(z => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+    }
+
+    function randomPosOutsideCharacters(region) {
+      let x, y;
+      do {
+        x = region.x + Math.random() * region.w;
+        y = region.y + Math.random() * region.h;
+      } while (isInExcludeZone(x, y, region));
+      return { x, y };
+    }
+
+    function createSparkle() {
+      const region = getMintRegion();
+      const pos = randomPosOutsideCharacters(region);
+      return {
+        x: pos.x,
+        y: pos.y,
+        size: Math.random() * 6 + 3,
+        opacity: Math.random(),
+        speed: Math.random() * 0.02 + 0.01,
+        phase: Math.random() * Math.PI * 2,
+        drift: (Math.random() - 0.5) * 0.3,
+        floatSpeed: Math.random() * 0.3 + 0.1,
+        // Colors: white, soft pink, light cyan to match the scene
+        color: ['#ffffff', '#ffe0f0', '#c8faff', '#fff5fc', '#d4f8ff'][Math.floor(Math.random() * 5)]
+      };
+    }
+
+    // Initialize sparkles
+    for (let i = 0; i < SPARKLE_COUNT; i++) {
+      sparkles.push(createSparkle());
+    }
+
+    function drawStar(x, y, size, color, opacity) {
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = size * 4;
+
+      // 4-pointed star
+      ctx.beginPath();
+      const outer = size;
+      const inner = size * 0.3;
+      for (let i = 0; i < 4; i++) {
+        const angle = (i * Math.PI) / 2 - Math.PI / 2;
+        const nextAngle = angle + Math.PI / 4;
+        ctx.lineTo(x + Math.cos(angle) * outer, y + Math.sin(angle) * outer);
+        ctx.lineTo(x + Math.cos(nextAngle) * inner, y + Math.sin(nextAngle) * inner);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    let time = 0;
+    function animateSparkles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      time += 0.016;
+      const region = getMintRegion();
+
+      sparkles.forEach(s => {
+        // Twinkle: oscillating opacity
+        const twinkle = (Math.sin(time * (1 / s.speed) + s.phase) + 1) / 2;
+        const currentOpacity = twinkle * 0.8 + 0.1;
+
+        // Gentle float upward & drift
+        s.y -= s.floatSpeed;
+        s.x += s.drift * 0.1;
+
+        // Reset if out of region or drifted into character zone
+        if (s.y < region.y - 10 || s.x < region.x - 10 || s.x > region.x + region.w + 10 || isInExcludeZone(s.x, s.y, region)) {
+          const pos = randomPosOutsideCharacters(region);
+          s.x = pos.x;
+          s.y = region.y + region.h;
+          s.phase = Math.random() * Math.PI * 2;
+        }
+
+        const currentSize = s.size * (0.7 + twinkle * 0.5);
+        drawStar(s.x, s.y, currentSize, s.color, currentOpacity);
+      });
+
+      requestAnimationFrame(animateSparkles);
+    }
+
+    // Start after image loads
+    if (mainBg.complete) {
+      animateSparkles();
+    } else {
+      mainBg.addEventListener('load', animateSparkles);
+    }
   </script>
 </body>
 </html>
