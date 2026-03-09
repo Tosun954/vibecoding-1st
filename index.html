@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pick Your Creator — 포트폴리오</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      background: #000;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: default;
+    }
+
+    /* ===== MAIN SCREEN ===== */
+    #main-screen {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+    }
+
+    #main-bg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+    }
+
+    /* Hotspot areas over the characters in the image */
+    .hotspot {
+      position: absolute;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: box-shadow 0.3s ease, transform 0.2s ease;
+      z-index: 10;
+    }
+
+    .hotspot::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: border-color 0.3s ease;
+    }
+
+    /* Astronaut hotspot - positioned over the astronaut in the image */
+    #hotspot-astronaut {
+      width: 14%;
+      height: 28%;
+      top: 30%;
+      left: 53%;
+    }
+
+    /* Melting hotspot - positioned over melting in the image */
+    #hotspot-melting {
+      width: 16%;
+      height: 22%;
+      top: 52%;
+      left: 40%;
+    }
+
+    /* Name labels */
+    .hotspot-label {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* Claw arm overlay */
+    #claw-arm {
+      position: absolute;
+      top: 5%;
+      left: 41%;
+      width: 12%;
+      z-index: 5;
+      pointer-events: none;
+      transform-origin: top center;
+      transition: transform 0.1s ease;
+      opacity: 0; /* hidden, the claw is in the bg image */
+    }
+
+    /* ===== HOVER EFFECTS ===== */
+    #main-screen.machine-hover .hotspot {
+      box-shadow: 0 0 30px 10px rgba(255, 182, 255, 0.7),
+                  0 0 60px 20px rgba(255, 182, 255, 0.3);
+    }
+
+    #main-screen.machine-hover .hotspot::after {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    #main-screen.machine-hover .hotspot-label {
+      opacity: 1;
+    }
+
+    /* Claw shake animation */
+    @keyframes clawShake {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(3deg); }
+      40% { transform: rotate(-3deg); }
+      60% { transform: rotate(2deg); }
+      80% { transform: rotate(-2deg); }
+    }
+
+    #main-screen.machine-hover #claw-shake-zone {
+      animation: clawShake 0.5s ease-in-out infinite;
+    }
+
+    /* Invisible claw shake zone overlaying the claw in image */
+    #claw-shake-zone {
+      position: absolute;
+      top: 0%;
+      left: 35%;
+      width: 22%;
+      height: 35%;
+      z-index: 3;
+      pointer-events: none;
+      transform-origin: top center;
+    }
+
+    /* Individual hover glow */
+    .hotspot:hover {
+      box-shadow: 0 0 40px 15px rgba(255, 200, 255, 0.9),
+                  0 0 80px 30px rgba(255, 150, 255, 0.5) !important;
+      transform: scale(1.05);
+    }
+
+    /* ===== OVERLAY PANEL ===== */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    #overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #overlay-content {
+      display: flex;
+      align-items: center;
+      gap: 60px;
+      max-width: 900px;
+      padding: 40px;
+      transform: translateY(30px);
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #overlay.active #overlay-content {
+      transform: translateY(0);
+    }
+
+    /* Character image in overlay */
+    #overlay-character {
+      width: 280px;
+      height: auto;
+      filter: drop-shadow(0 0 40px rgba(255, 150, 255, 0.5));
+      animation: floatChar 3s ease-in-out infinite;
+    }
+
+    @keyframes floatChar {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+
+    /* Claw animation in overlay */
+    #overlay-claw {
+      position: absolute;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      opacity: 0;
+      animation: clawDrop 1s ease-out forwards;
+    }
+
+    @keyframes clawDrop {
+      0% { top: -200px; opacity: 0; }
+      40% { top: -80px; opacity: 1; }
+      60% { top: -60px; }
+      100% { top: -80px; opacity: 1; }
+    }
+
+    /* Info section */
+    #overlay-info {
+      color: #fff;
+      max-width: 400px;
+    }
+
+    #overlay-name {
+      font-size: 48px;
+      font-weight: 900;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ff9ec7, #c7b3ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #overlay-role {
+      font-size: 18px;
+      font-weight: 300;
+      color: #b0b0b0;
+      margin-bottom: 24px;
+      letter-spacing: 2px;
+    }
+
+    #overlay-desc {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #d0d0d0;
+      font-weight: 300;
+    }
+
+    #overlay-desc p {
+      margin-bottom: 12px;
+    }
+
+    /* Close button */
+    #close-btn {
+      position: absolute;
+      top: 30px;
+      right: 40px;
+      width: 50px;
+      height: 50px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      background: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    #close-btn:hover {
+      border-color: #ff9ec7;
+      color: #ff9ec7;
+      transform: rotate(90deg);
+    }
+
+    /* Portfolio link button */
+    .portfolio-btn {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 12px 32px;
+      border: 2px solid #ff9ec7;
+      border-radius: 30px;
+      color: #ff9ec7;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+    }
+
+    .portfolio-btn:hover {
+      background: #ff9ec7;
+      color: #000;
+    }
+
+    /* ===== INTRO TITLE ===== */
+    #intro-text {
+      position: absolute;
+      bottom: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 8;
+      pointer-events: none;
+    }
+
+    #intro-text h1 {
+      font-size: 22px;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.85);
+      text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+      letter-spacing: 3px;
+    }
+
+    #intro-text p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 8px;
+      letter-spacing: 1px;
+    }
+
+    /* Pulsing hint */
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    #intro-text p {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      #overlay-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 30px;
+        padding: 20px;
+      }
+
+      #overlay-character {
+        width: 180px;
+      }
+
+      #overlay-name {
+        font-size: 36px;
+      }
+
+      .hotspot-label {
+        font-size: 11px;
+        bottom: -22px;
+      }
+
+      #intro-text h1 {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MAIN SCREEN -->
+  <div id="main-screen">
+    <img id="main-bg" src="upscale.png" alt="인형뽑기 기계" />
+
+    <!-- Invisible claw zone for shake animation -->
+    <div id="claw-shake-zone"></div>
+
+    <!-- Character hotspots -->
+    <div id="hotspot-astronaut" class="hotspot" data-character="astronaut">
+      <span class="hotspot-label">우주인</span>
+    </div>
+    <div id="hotspot-melting" class="hotspot" data-character="melting">
+      <span class="hotspot-label">멜팅</span>
+    </div>
+
+    <!-- Bottom intro text -->
+    <div id="intro-text">
+      <h1>PICK YOUR CREATOR</h1>
+      <p>캐릭터를 선택하세요</p>
+    </div>
+  </div>
+
+  <!-- OVERLAY PANEL -->
+  <div id="overlay">
+    <button id="close-btn">&times;</button>
+    <div id="overlay-content">
+      <div style="position: relative;">
+        <img id="overlay-claw" src="mmm2.png" alt="기계손" />
+        <img id="overlay-character" src="" alt="" />
+      </div>
+      <div id="overlay-info">
+        <div id="overlay-name"></div>
+        <div id="overlay-role"></div>
+        <div id="overlay-desc"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Character data
+    const characters = {
+      astronaut: {
+        name: '우주인',
+        role: 'CREATOR',
+        image: 'astronaut.png',
+        desc: `
+          <p>안녕하세요, 저는 <strong>우주인</strong>입니다.</p>
+          <p>크리에이터로서 새로운 세계를 탐험하고 창작합니다.
+          기획, 디자인, 콘텐츠 제작까지 — 상상을 현실로 만드는 일을 합니다.</p>
+          <a href="#" class="portfolio-btn">PORTFOLIO 보기 →</a>
+        `
+      },
+      melting: {
+        name: '멜팅',
+        role: 'AI VIDEO CREATOR',
+        image: 'melting.png',
+        desc: `
+          <p>안녕하세요, 저는 <strong>멜팅</strong>입니다.</p>
+          <p>AI 영상제작자로서 기술과 감성의 경계를 녹여냅니다.
+          AI 도구를 활용한 영상 기획·제작·편집을 통해 새로운 시각 경험을 만들어냅니다.</p>
+          <a href="#" class="portfolio-btn">PORTFOLIO 보기 →</a>
+        `
+      }
+    };
+
+    const mainScreen = document.getElementById('main-screen');
+    const overlay = document.getElementById('overlay');
+    const closeBtn = document.getElementById('close-btn');
+    const hotspots = document.querySelectorAll('.hotspot');
+    const mainBg = document.getElementById('main-bg');
+
+    // Track image dimensions for responsive hotspot positioning
+    function updateHotspots() {
+      const img = mainBg;
+      const rect = img.getBoundingClientRect();
+
+      // Calculate the actual displayed image area (since object-fit: contain)
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      const containerRatio = rect.width / rect.height;
+
+      let displayW, displayH, offsetX, offsetY;
+
+      if (containerRatio > imgRatio) {
+        // Container is wider — image is height-limited
+        displayH = rect.height;
+        displayW = displayH * imgRatio;
+        offsetX = (rect.width - displayW) / 2;
+        offsetY = 0;
+      } else {
+        // Container is taller — image is width-limited
+        displayW = rect.width;
+        displayH = displayW / imgRatio;
+        offsetX = 0;
+        offsetY = (rect.height - displayH) / 2;
+      }
+
+      // Astronaut position (relative to image): ~53% from left, ~28% from top
+      const astro = document.getElementById('hotspot-astronaut');
+      astro.style.left = (offsetX + displayW * 0.50) + 'px';
+      astro.style.top = (offsetY + displayH * 0.25) + 'px';
+      astro.style.width = (displayW * 0.15) + 'px';
+      astro.style.height = (displayH * 0.32) + 'px';
+
+      // Melting position: ~38% from left, ~52% from top
+      const melt = document.getElementById('hotspot-melting');
+      melt.style.left = (offsetX + displayW * 0.35) + 'px';
+      melt.style.top = (offsetY + displayH * 0.50) + 'px';
+      melt.style.width = (displayW * 0.18) + 'px';
+      melt.style.height = (displayH * 0.28) + 'px';
+
+      // Claw shake zone
+      const claw = document.getElementById('claw-shake-zone');
+      claw.style.left = (offsetX + displayW * 0.30) + 'px';
+      claw.style.top = (offsetY + displayH * 0.02) + 'px';
+      claw.style.width = (displayW * 0.25) + 'px';
+      claw.style.height = (displayH * 0.35) + 'px';
+    }
+
+    // Update on load and resize
+    mainBg.addEventListener('load', updateHotspots);
+    window.addEventListener('resize', updateHotspots);
+    updateHotspots();
+
+    // Hover: add glow to both characters + shake claw
+    hotspots.forEach(h => {
+      h.addEventListener('mouseenter', () => {
+        mainScreen.classList.add('machine-hover');
+      });
+      h.addEventListener('mouseleave', () => {
+        mainScreen.classList.remove('machine-hover');
+      });
+    });
+
+    // Click: open overlay
+    hotspots.forEach(h => {
+      h.addEventListener('click', () => {
+        const key = h.dataset.character;
+        const data = characters[key];
+
+        document.getElementById('overlay-character').src = data.image;
+        document.getElementById('overlay-character').alt = data.name;
+        document.getElementById('overlay-name').textContent = data.name;
+        document.getElementById('overlay-role').textContent = data.role;
+        document.getElementById('overlay-desc').innerHTML = data.desc;
+
+        // Reset claw animation
+        const clawImg = document.getElementById('overlay-claw');
+        clawImg.style.animation = 'none';
+        clawImg.offsetHeight; // force reflow
+        clawImg.style.animation = 'clawDrop 1s ease-out forwards';
+
+        overlay.classList.add('active');
+      });
+    });
+
+    // Close overlay
+    closeBtn.addEventListener('click', () => {
+      overlay.classList.remove('active');
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('active');
+      }
+    });
+
+    // ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') overlay.classList.remove('active');
+    });
+  </script>
+</body>
+</html>
