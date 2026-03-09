@@ -17,7 +17,7 @@
       overflow: hidden;
       background: #000;
       font-family: 'Noto Sans KR', sans-serif;
-      cursor: default;
+      cursor: url('cursor.png') 16 16, auto;
     }
 
     /* ===== MAIN SCREEN ===== */
@@ -34,7 +34,7 @@
     #main-bg {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       object-position: center;
       display: block;
     }
@@ -103,15 +103,6 @@
     }
 
     /* ===== HOVER EFFECTS ===== */
-    #main-screen.machine-hover .hotspot {
-      box-shadow: 0 0 30px 10px rgba(255, 182, 255, 0.7),
-                  0 0 60px 20px rgba(255, 182, 255, 0.3);
-    }
-
-    #main-screen.machine-hover .hotspot::after {
-      border-color: rgba(255, 255, 255, 0.6);
-    }
-
     #main-screen.machine-hover .hotspot-label {
       opacity: 1;
     }
@@ -141,11 +132,9 @@
       transform-origin: top center;
     }
 
-    /* Individual hover glow */
+    /* Individual hover */
     .hotspot:hover {
-      box-shadow: 0 0 40px 15px rgba(255, 200, 255, 0.9),
-                  0 0 80px 30px rgba(255, 150, 255, 0.5) !important;
-      transform: scale(1.05);
+      transform: scale(1.02);
     }
 
     /* ===== OVERLAY PANEL ===== */
@@ -360,7 +349,7 @@
 
   <!-- MAIN SCREEN -->
   <div id="main-screen">
-    <img id="main-bg" src="upscale.png" alt="인형뽑기 기계" />
+    <img id="main-bg" src="16.9upscale.png" alt="인형뽑기 기계" />
 
     <!-- Invisible claw zone for shake animation -->
     <div id="claw-shake-zone"></div>
@@ -431,48 +420,43 @@
 
     // Track image dimensions for responsive hotspot positioning
     function updateHotspots() {
-      const img = mainBg;
-      const rect = img.getBoundingClientRect();
-
-      // Calculate the actual displayed image area (since object-fit: contain)
-      const imgRatio = img.naturalWidth / img.naturalHeight;
-      const containerRatio = rect.width / rect.height;
+      const screenRect = mainScreen.getBoundingClientRect();
+      const imgRatio = mainBg.naturalWidth / mainBg.naturalHeight;
+      const containerRatio = screenRect.width / screenRect.height;
 
       let displayW, displayH, offsetX, offsetY;
 
       if (containerRatio > imgRatio) {
-        // Container is wider — image is height-limited
-        displayH = rect.height;
+        displayH = screenRect.height;
         displayW = displayH * imgRatio;
-        offsetX = (rect.width - displayW) / 2;
+        offsetX = (screenRect.width - displayW) / 2;
         offsetY = 0;
       } else {
-        // Container is taller — image is width-limited
-        displayW = rect.width;
+        displayW = screenRect.width;
         displayH = displayW / imgRatio;
         offsetX = 0;
-        offsetY = (rect.height - displayH) / 2;
+        offsetY = (screenRect.height - displayH) / 2;
       }
 
-      // Astronaut position (relative to image): ~53% from left, ~28% from top
+      // Astronaut - center-right upper area
       const astro = document.getElementById('hotspot-astronaut');
-      astro.style.left = (offsetX + displayW * 0.50) + 'px';
-      astro.style.top = (offsetY + displayH * 0.25) + 'px';
-      astro.style.width = (displayW * 0.15) + 'px';
-      astro.style.height = (displayH * 0.32) + 'px';
+      astro.style.left = (offsetX + displayW * 0.48) + 'px';
+      astro.style.top = (offsetY + displayH * 0.12) + 'px';
+      astro.style.width = (displayW * 0.18) + 'px';
+      astro.style.height = (displayH * 0.50) + 'px';
 
-      // Melting position: ~38% from left, ~52% from top
+      // Melting - pink bear, center-right lower area
       const melt = document.getElementById('hotspot-melting');
-      melt.style.left = (offsetX + displayW * 0.35) + 'px';
-      melt.style.top = (offsetY + displayH * 0.50) + 'px';
-      melt.style.width = (displayW * 0.18) + 'px';
-      melt.style.height = (displayH * 0.28) + 'px';
+      melt.style.left = (offsetX + displayW * 0.45) + 'px';
+      melt.style.top = (offsetY + displayH * 0.55) + 'px';
+      melt.style.width = (displayW * 0.22) + 'px';
+      melt.style.height = (displayH * 0.35) + 'px';
 
-      // Claw shake zone
+      // Claw - top left area
       const claw = document.getElementById('claw-shake-zone');
-      claw.style.left = (offsetX + displayW * 0.30) + 'px';
-      claw.style.top = (offsetY + displayH * 0.02) + 'px';
-      claw.style.width = (displayW * 0.25) + 'px';
+      claw.style.left = (offsetX + displayW * 0.10) + 'px';
+      claw.style.top = (offsetY + displayH * 0.0) + 'px';
+      claw.style.width = (displayW * 0.22) + 'px';
       claw.style.height = (displayH * 0.35) + 'px';
     }
 
@@ -481,12 +465,28 @@
     window.addEventListener('resize', updateHotspots);
     updateHotspots();
 
-    // Hover: add glow to both characters + shake claw
+    // Preload hover images
+    const hoverImages = {
+      astronaut: '16.9upscale-1.png',
+      melting: '16.9upscale-2.png'
+    };
+    const defaultBg = '16.9upscale.png';
+
+    // Preload for instant swap
+    Object.values(hoverImages).forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
+
+    // Hover: swap background image to show neon glow on character
     hotspots.forEach(h => {
       h.addEventListener('mouseenter', () => {
+        const key = h.dataset.character;
+        mainBg.src = hoverImages[key] || defaultBg;
         mainScreen.classList.add('machine-hover');
       });
       h.addEventListener('mouseleave', () => {
+        mainBg.src = defaultBg;
         mainScreen.classList.remove('machine-hover');
       });
     });
