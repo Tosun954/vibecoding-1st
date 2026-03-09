@@ -368,28 +368,48 @@
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
+      #main-screen {
+        background: #a8d4d7;
+      }
+
+      #main-bg {
+        object-fit: contain;
+      }
+
       #overlay-content {
         flex-direction: column;
         text-align: center;
-        gap: 30px;
+        gap: 20px;
         padding: 20px;
       }
 
       #overlay-character {
-        width: 180px;
+        width: 160px;
       }
 
       #overlay-name {
-        font-size: 36px;
+        font-size: 32px;
+      }
+
+      #overlay-role {
+        font-size: 14px;
+      }
+
+      #overlay-desc {
+        font-size: 14px;
       }
 
       .hotspot-label {
-        font-size: 11px;
-        bottom: -22px;
+        font-size: 10px;
+        bottom: -18px;
       }
 
-      #intro-text h1 {
-        font-size: 16px;
+      #close-btn {
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
       }
     }
   </style>
