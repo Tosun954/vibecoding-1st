@@ -186,6 +186,7 @@
       height: auto;
       filter: drop-shadow(0 0 40px rgba(255, 150, 255, 0.5));
       animation: floatChar 3s ease-in-out infinite;
+      transition: opacity 0.3s ease;
     }
 
     @keyframes floatChar {
@@ -369,11 +370,11 @@
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
       #main-screen {
-        background: #a8d4d7;
+        background: #f5b8c8;
       }
 
       #main-bg {
-        object-fit: contain;
+        object-fit: cover;
       }
 
       #overlay-content {
@@ -419,7 +420,7 @@
   <!-- MAIN SCREEN -->
   <div id="main-screen">
     <canvas id="sparkle-canvas"></canvas>
-    <img id="main-bg" src="16.9upscale.png" alt="인형뽑기 기계" />
+    <img id="main-bg" src="16.9upscale.png" alt="인형뽑기 기계" data-desktop="16.9upscale.png" data-mobile="mobile Firefly Upscaler 2x 비율.jpg" />
 
     <!-- Invisible claw zone for shake animation -->
     <div id="claw-shake-zone"></div>
@@ -483,6 +484,12 @@
     const closeBtn = document.getElementById('close-btn');
     const hotspots = document.querySelectorAll('.hotspot');
     const mainBg = document.getElementById('main-bg');
+    const isMobile = window.innerWidth <= 768;
+
+    // Set mobile background image
+    if (isMobile) {
+      mainBg.src = 'mobile Firefly Upscaler 2x 비율.jpg';
+    }
 
     // Track image dimensions for responsive hotspot positioning
     function updateHotspots() {
@@ -504,41 +511,71 @@
         offsetY = (screenRect.height - displayH) / 2;
       }
 
-      // Astronaut - center-right upper area
       const astro = document.getElementById('hotspot-astronaut');
-      astro.style.left = (offsetX + displayW * 0.48) + 'px';
-      astro.style.top = (offsetY + displayH * 0.12) + 'px';
-      astro.style.width = (displayW * 0.18) + 'px';
-      astro.style.height = (displayH * 0.50) + 'px';
-
-      // Melting - pink bear, center-right lower area
       const melt = document.getElementById('hotspot-melting');
-      melt.style.left = (offsetX + displayW * 0.45) + 'px';
-      melt.style.top = (offsetY + displayH * 0.55) + 'px';
-      melt.style.width = (displayW * 0.22) + 'px';
-      melt.style.height = (displayH * 0.35) + 'px';
-
-      // Claw - top left area
       const claw = document.getElementById('claw-shake-zone');
-      claw.style.left = (offsetX + displayW * 0.10) + 'px';
-      claw.style.top = (offsetY + displayH * 0.0) + 'px';
-      claw.style.width = (displayW * 0.22) + 'px';
-      claw.style.height = (displayH * 0.35) + 'px';
-
-      // Intro text - positioned near the drop chute, below the claw arm
       const intro = document.getElementById('intro-text');
-      const clawCenterX = offsetX + displayW * 0.10 + (displayW * 0.22) / 2;
-      const introW = displayW * 0.28;
-      const introTop = offsetY + displayH * 0.48;
-      intro.style.left = (clawCenterX - introW / 2) + 'px';
-      intro.style.top = introTop + 'px';
-      intro.style.width = introW + 'px';
 
-      // Scale font size relative to image
-      const baseFontH1 = displayW * 0.032;
-      const baseFontP = displayW * 0.016;
-      intro.querySelector('h1').style.fontSize = Math.max(baseFontH1, 13) + 'px';
-      intro.querySelector('p').style.fontSize = Math.max(baseFontP, 9) + 'px';
+      if (isMobile) {
+        // Mobile 9:16 layout - positions matched to mobile image
+        // Astronaut - right upper area
+        astro.style.left = (offsetX + displayW * 0.50) + 'px';
+        astro.style.top = (offsetY + displayH * 0.22) + 'px';
+        astro.style.width = (displayW * 0.40) + 'px';
+        astro.style.height = (displayH * 0.30) + 'px';
+
+        // Melting - bottom center-right
+        melt.style.left = (offsetX + displayW * 0.30) + 'px';
+        melt.style.top = (offsetY + displayH * 0.52) + 'px';
+        melt.style.width = (displayW * 0.50) + 'px';
+        melt.style.height = (displayH * 0.22) + 'px';
+
+        // Claw - top center
+        claw.style.left = (offsetX + displayW * 0.25) + 'px';
+        claw.style.top = (offsetY + displayH * 0.0) + 'px';
+        claw.style.width = (displayW * 0.50) + 'px';
+        claw.style.height = (displayH * 0.22) + 'px';
+
+        // Intro text - bottom area below characters
+        const introW = displayW * 0.80;
+        const introTop = offsetY + displayH * 0.78;
+        intro.style.left = (offsetX + (displayW - introW) / 2) + 'px';
+        intro.style.top = introTop + 'px';
+        intro.style.width = introW + 'px';
+
+        const baseFontH1 = displayW * 0.055;
+        const baseFontP = displayW * 0.030;
+        intro.querySelector('h1').style.fontSize = Math.max(baseFontH1, 16) + 'px';
+        intro.querySelector('p').style.fontSize = Math.max(baseFontP, 11) + 'px';
+      } else {
+        // Desktop 16:9 layout
+        astro.style.left = (offsetX + displayW * 0.48) + 'px';
+        astro.style.top = (offsetY + displayH * 0.12) + 'px';
+        astro.style.width = (displayW * 0.18) + 'px';
+        astro.style.height = (displayH * 0.50) + 'px';
+
+        melt.style.left = (offsetX + displayW * 0.45) + 'px';
+        melt.style.top = (offsetY + displayH * 0.55) + 'px';
+        melt.style.width = (displayW * 0.22) + 'px';
+        melt.style.height = (displayH * 0.35) + 'px';
+
+        claw.style.left = (offsetX + displayW * 0.10) + 'px';
+        claw.style.top = (offsetY + displayH * 0.0) + 'px';
+        claw.style.width = (displayW * 0.22) + 'px';
+        claw.style.height = (displayH * 0.35) + 'px';
+
+        const clawCenterX = offsetX + displayW * 0.10 + (displayW * 0.22) / 2;
+        const introW = displayW * 0.28;
+        const introTop = offsetY + displayH * 0.48;
+        intro.style.left = (clawCenterX - introW / 2) + 'px';
+        intro.style.top = introTop + 'px';
+        intro.style.width = introW + 'px';
+
+        const baseFontH1 = displayW * 0.032;
+        const baseFontP = displayW * 0.016;
+        intro.querySelector('h1').style.fontSize = Math.max(baseFontH1, 13) + 'px';
+        intro.querySelector('p').style.fontSize = Math.max(baseFontP, 9) + 'px';
+      }
     }
 
     // Update on load and resize
@@ -547,14 +584,23 @@
     updateHotspots();
 
     // Preload hover images
-    const hoverImages = {
+    const hoverImages = isMobile ? {
+      astronaut: '우주인2.jpeg',
+      melting: '멜팅2.jpeg'
+    } : {
       astronaut: '16.9upscale-1.png',
       melting: '16.9upscale-2.png'
     };
-    const defaultBg = '16.9upscale.png';
+    const defaultBg = isMobile ? 'mobile Firefly Upscaler 2x 비율.jpg' : '16.9upscale.png';
 
-    // Preload for instant swap
-    Object.values(hoverImages).forEach(src => {
+    // Preload all images for instant swap
+    const preloadSrcs = [
+      ...Object.values(hoverImages),
+      'astronaut.png',
+      'melting.png',
+      'mmm2.png'
+    ];
+    preloadSrcs.forEach(src => {
       const img = new Image();
       img.src = src;
     });
@@ -577,21 +623,37 @@
       });
     });
 
-    // Click: open overlay
+    // Click: open overlay (wait for images to be ready before showing)
     function openOverlay(key) {
       const data = characters[key];
-      document.getElementById('overlay-character').src = data.image;
-      document.getElementById('overlay-character').alt = data.name;
+      const charImg = document.getElementById('overlay-character');
+      const clawImg = document.getElementById('overlay-claw');
+
+      // Hide overlay content until images are ready
+      charImg.style.opacity = '0';
+      clawImg.style.opacity = '0';
+      clawImg.style.animation = 'none';
+
       document.getElementById('overlay-name').textContent = data.name;
       document.getElementById('overlay-role').textContent = data.role;
       document.getElementById('overlay-desc').innerHTML = data.desc;
 
-      const clawImg = document.getElementById('overlay-claw');
-      clawImg.style.animation = 'none';
-      clawImg.offsetHeight;
-      clawImg.style.animation = 'clawDrop 1s ease-out forwards';
+      // Set sources
+      charImg.src = data.image;
+      charImg.alt = data.name;
 
+      // Show overlay immediately (dark bg)
       overlay.classList.add('active');
+
+      // Wait for both images to be decoded/ready, then reveal together
+      const charReady = charImg.complete ? Promise.resolve() : new Promise(r => { charImg.onload = r; });
+      const clawReady = clawImg.complete ? Promise.resolve() : new Promise(r => { clawImg.onload = r; });
+
+      Promise.all([charReady, clawReady]).then(() => {
+        charImg.style.opacity = '1';
+        clawImg.style.opacity = '1';
+        clawImg.style.animation = 'clawDrop 1s ease-out forwards';
+      });
     }
 
     hotspots.forEach(h => {
@@ -633,7 +695,6 @@
     const canvas = document.getElementById('sparkle-canvas');
     const ctx = canvas.getContext('2d');
     let sparkles = [];
-    const isMobile = window.innerWidth <= 768;
     const SPARKLE_COUNT = 70;
 
     function resizeCanvas() {
